@@ -1,0 +1,7 @@
+static/* linguist-vendored
+app/static/app/content/bootstrap* linguist-vendored
+app/static/app/css/open-iconic* linguist-vendored
+app/static/app/fonts/open-iconic* linguist-vendored
+app/static/app/scripts/bootstrap* linguist-vendored
+app/static/app/scripts/jquery* linguist-vendored
+app/static/app/scripts/Chart.* linguist-vendored
