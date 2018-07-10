@@ -1,0 +1,14 @@
+{% extends "app/layout.html" %}
+{% load staticfiles %}
+
+{% block scripts %}
+{% endblock %}
+
+{% block content %}
+
+<h2>{{ title }}</h2>
+
+<p>Rig {{ rig.name }} miner {{ operation }} requested. Please wait a couple of minutes for the miner restart/stats update to complete.</p>
+<p>Click <a href="{% url 'stats' %}">here</a> to return to the stats page.</p>
+
+{% endblock %}

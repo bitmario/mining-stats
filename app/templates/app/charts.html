@@ -1,0 +1,211 @@
+{% extends "app/layout.html" %}
+{% load staticfiles %}
+
+{% block head %}
+    <script type="text/javascript" src="{% static 'app/scripts/Chart.bundle.min.js' %}"></script>
+    <style>
+        canvas {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+	</style>
+{% endblock %}
+
+{% block content %}
+
+<h2>{{ title }}</h2>
+<h5>Data for last {{ hours }} hours, {{ mins }} minute averages.</h5>
+<h7>More charts: 
+    <a href="{% url 'charts' miner.id 2 %}">2 hours</a> | <a href="{% url 'charts' miner.id 6 %}">6 hours</a> | 
+    <a href="{% url 'charts' miner.id 12 %}">12 hours</a> | <a href="{% url 'charts' miner.id 24 %}">1 day</a> | 
+    <a href="{% url 'charts' miner.id 48 %}">2 days</a> | <a href="{% url 'charts' miner.id 168 %}">1 week</a>
+</h7>
+
+{% if has_data %}
+    <div class="row">
+        <div id="chart-container" class="col-12">
+            <canvas id="canvas" class="chartjs-render-monitor"></canvas>
+        </div>
+    </div>
+    <div class="row">
+        <div id="chart-container2" class="col-12">
+            <canvas id="gpuCanvas" class="chartjs-render-monitor"></canvas>
+        </div>
+    </div>
+    <script>
+	    var timeFormat = 'YYYY-MM-DD HH:mm';
+        var ORANGE = 'rgba(253, 126, 23, 0.75)'; //'rgba(255, 140, 0, 0.7)';
+        var RED = 'rgba(255, 0, 0, 0.7)';
+        var BLUE = 'rgba(0, 123, 255, 0.75)'; //'rgba(0, 0, 255, 0.7)';
+
+	    var color = Chart.helpers.color;
+	    var config = {
+		    type: 'line',
+		    data: {
+                labels: {{ dates|safe }},
+			    datasets: [{
+				    label: "Max Temp (C)",
+				    backgroundColor: BLUE,
+				    borderColor: BLUE,
+				    fill: false,
+                    pointRadius: 3,
+                    yAxisID: 'B',
+				    data: {{ temps }},
+			    },
+                {
+				    label: "Hashrate (MH/s)",
+				    backgroundColor: ORANGE,
+				    borderColor: ORANGE,
+				    fill: true,
+                    pointRadius: 3,
+                    yAxisID: 'A',
+				    data: {{ hashrates }},
+			    }]
+		    },
+		    options: {
+                responsive: true,
+                title:{
+                    text: "Rig Stats",
+                    display: true
+                },
+                tooltips: {
+                    mode: 'index',
+                    intersect: false
+                },
+			    scales: {
+				    xAxes: [{
+					    type: "time",
+					    time: {
+						    format: timeFormat,
+						    //round: 'day',
+                            unit: '{{ time_unit }}',
+						    tooltipFormat: 'll HH:mm'
+					    },
+				    }, ],
+				    yAxes: [{
+					        id: 'A',
+                            position: 'left',
+                            scaleLabel: {
+						        display: true,
+						        labelString: 'Avg Hashrate (MH/s)',
+                                fontColor: ORANGE,
+					        },
+                            gridLines: {
+                                color: ORANGE,
+                                borderDash: [3, 5],
+                            },
+                            ticks: {
+                                beginAtZero: false
+                            }},
+                            {
+    					    id: 'B',
+                            position: 'right',
+                            scaleLabel: {
+						        display: true,
+						        labelString: 'Avg Max Temp (C)',
+                                fontColor: BLUE,
+					        },
+                            gridLines: {
+                                color: BLUE,
+                                borderDash: [3, 5],
+                            },
+                            ticks: {
+                                beginAtZero: false,
+                                suggestedMin: 45,
+                                suggestedMax: 65,
+                            }},
+				            ]
+			    },
+		    }
+	    };
+
+	    var gpuConfig = {
+		    type: 'bar',
+		    data: {
+                labels: {{ gpu_numbers }},
+			    datasets: [{
+				    label: "Avg Hashrate (MH/s)",
+				    backgroundColor: ORANGE,
+				    borderColor: ORANGE,
+				    fill: true,
+                    pointRadius: 3,
+                    yAxisID: 'A',
+				    data: {{ gpu_hashrates }},
+			    },
+                {
+				    label: "Max Temp (C)",
+				    backgroundColor: BLUE,
+				    borderColor: '#007bff',
+				    fill: false,
+                    pointRadius: 3,
+                    yAxisID: 'B',
+				    data: {{ gpu_temps }},
+			    }]
+		    },
+		    options: {
+                responsive: true,
+                title:{
+                    text: "GPU Stats",
+                    display: true
+                },
+			    scales: {
+				    xAxes: [{
+        				scaleLabel: {
+						    display: true,
+						    labelString: 'GPU Number'
+					    }
+				    }, ],
+				    yAxes: [{
+					        id: 'A',
+                            position: 'left',
+                            scaleLabel: {
+						        display: true,
+						        labelString: 'Avg Hashrate (MH/s)',
+                                fontColor: ORANGE,
+					        },
+                            gridLines: {
+                                color: ORANGE,
+                                //borderDash: [3, 5],
+                            },
+                            ticks: {
+                                beginAtZero: false,
+                                suggestedMin: 28,
+                                suggestedMax: 33,
+                            }},
+                            {
+    					    id: 'B',
+                            position: 'right',
+                            scaleLabel: {
+						        display: true,
+						        labelString: 'Max Temp (C)',
+                                fontColor: BLUE,
+					        },
+                            gridLines: {
+                                color: BLUE,
+                                borderDash: [3, 5],
+                            },
+                            ticks: {
+                                beginAtZero: false,
+                                suggestedMin: 45,
+                                suggestedMax: 65,
+                            }},
+				            ]
+			    },
+		    }
+	    };
+
+	    window.onload = function() {
+		    var ctx = document.getElementById("canvas").getContext("2d");
+            var gpuCtx = document.getElementById("gpuCanvas").getContext("2d");
+		    window.myLine = new Chart(ctx, config);
+            window.myBar = new Chart(gpuCtx, gpuConfig);
+	    };
+    </script>
+{% else %}
+    <p>No data for selected period.</p>
+{% endif %}
+
+<a class="btn btn-primary" href="{% url 'stats' %}">Return to stats</a>
+
+{% endblock %}

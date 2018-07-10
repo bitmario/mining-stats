@@ -1,0 +1,197 @@
+{% extends "app/layout.html" %}
+{% load staticfiles %}
+
+{% block scripts %}
+    <script type="text/javascript" src="{% static 'app/scripts/autorefresh.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+
+<h2>{{ title }}</h2>
+<h5><input type="checkbox" onclick="toggleAutoRefresh(this);" id="reloadCB"> Auto refresh</h5>
+
+<div class="row text-center">
+  <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+      <div class="row">
+          <div class="col-12 h4">Total MH/s</div>
+          <div class="col-12 h5 {% if total_hashrate == 0 %}text-danger{% else %}text-success{% endif %}">{{ total_hashrate }}</div>
+      </div>
+  </div>
+  <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+      <div class="row">
+          <div class="col-12 h4">Rigs Online</div>
+          <div class="col-12 h5 {% if rigs_online == 0 %}text-danger{% else %}text-success{% endif %}">{{ rigs_online }}</div>
+      </div>
+  </div>
+  <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+      <div class="row">
+          <div class="col-12 h4">Rigs Offline</div>
+          <div class="col-12 h5 {% if rigs_offline > 0 %}text-danger{% else %}text-success{% endif %}">{{ rigs_offline }}</div>
+      </div>
+  </div>
+  <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+      <div class="row">
+          <div class="col-12 h4">GPUs Online</div>
+          <div class="col-12 h5 {% if gpus_online == 0 %}text-danger{% else %}text-success{% endif %}">{{ gpus_online }}</div>
+      </div>
+  </div>
+  <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+      <div class="row">
+          <div class="col-12 h4">GPUs Offline</div>
+          <div class="col-12 h5 {% if gpus_offline > 0 %}text-danger{% else %}text-success{% endif %}">{{ gpus_offline }}</div>
+      </div>
+  </div>
+  <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+      <div class="row">
+          <div class="col-12 h4">Max Temp</div>
+          <div class="col-12 h5 {% if max_temp > config.danger_temp %}text-danger{% elif max_temp > config.warn_temp %}text-warning{% else %}text-success{% endif %}">{{ max_temp }}C</div>
+      </div>
+  </div>
+</div>
+
+{% for r in stats %}
+  <hr />
+  <div class="row">
+      <div class="col">
+        <div class="row text-center justify-content-center bg-dark text-light font-weight-bold">
+          <h2 class="{% if r.online %}text-success{% else %}text-danger{% endif %}">
+            {% if r.online %}<span class="oi oi-media-play text-success"></span>{% else %}<span class="oi oi-media-stop text-danger"></span>{% endif %}
+            {{ r.miner.name }} ({{ r.miner.host }}:{{ r.miner.port }})
+          </h2>
+        </div>
+        {% if not r.online %}
+          <div class="row text-center">
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                <div class="row">
+                  <div class="col-12 h4">Ping (ms)</div>
+                  <div class="col-12 h5 {% if r.ping >= 300 %}text-danger{% else %}text-success{% endif %}">{{ r.ping }}</div>
+                </div>
+              </div>
+          {% if user.is_authenticated or not config.restrict_actions %}
+                <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                    {% include "app/stats_actions.html" with r=r only %}
+                </div>
+          {% endif %}
+              <div class="col-12 col-md-8 bg-dark text-light border border-light rounded">
+                <div class="row">
+                  <div class="col-12 h4">Error</div>
+                  <div class="col-12 h5 text-danger">{{ r.error }}</div>
+                </div>
+              </div>
+          </div>
+        {% else %}
+          <div class="row text-center">
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                  <div class="row">
+                      <div class="col-12 h4">Total MH/s</div>
+                      <div class="col-12 h5 {% if r.hashrate == 0 %}text-danger{% else %}text-success{% endif %}">{{ r.hashrate }}</div>
+                  </div>
+              </div>
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                  <div class="row">
+                      <div class="col-12 h4">Runtime</div>
+                      <div class="col-12 h5 text-success">{{ r.runtime_pretty }}</div>
+                  </div>
+              </div>
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                  <div class="row">
+                      <div class="col-12 h4">Shares</div>
+                      <div class="col-12 h5 text-success">{{ r.shares }}</div>
+                  </div>
+              </div>
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                  <div class="row">
+                      <div class="col-12 h4">Rej. Shares</div>
+                      <div class="col-12 h5 {% if r.rej_shares > 0 %}text-danger{% else %}text-success{% endif %}">{{ r.rej_shares }}</div>
+                  </div>
+              </div>
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                  <div class="row">
+                      <div class="col-12 h4">Inv. Shares</div>
+                      <div class="col-12 h5 {% if r.invalid_shares > 0 %}text-danger{% else %}text-success{% endif %}">{{ r.invalid_shares }}</div>
+                  </div>
+              </div>
+              <div class="col-6 col-md-2 bg-dark text-light border border-light rounded">
+                  <div class="row">
+                      <div class="col-12 h4">Max Temp</div>
+                      <div class="col-12 h5 {% if r.max_temp > config.danger_temp %}text-danger{% elif r.max_temp > config.warn_temp %}text-warning{% else %}text-success{% endif %}">
+                        {{ r.max_temp }}C
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="row">
+            <div class="col-12 col-md-6">
+              <div class="row text-center">
+                  <div class="col-6 col-md-4 bg-dark text-light border border-light rounded">
+                      <div class="row">
+                          <div class="col-12 h4">Ping (ms)</div>
+                          <div class="col-12 h5 {% if r.ping >= 300 %}text-danger{% else %}text-success{% endif %}">{{ r.ping }}</div>
+                      </div>
+                  </div>
+                  <div class="col-6 col-md-4 bg-dark text-light border border-light rounded">
+                      <div class="row">
+                          <div class="col-12 h4">GPUs Online</div>
+                          <div class="col-12 h5 {% if r.gpus_online < r.miner.active_gpus %}text-danger{% else %}text-success{% endif %}">{{ r.gpus_online }}</div>
+                      </div>
+                  </div>
+                  <div class="col-6 col-md-4 bg-dark text-light border border-light rounded">
+                      <div class="row">
+                          <div class="col-12 h4">GPUs Offline</div>
+                          <div class="col-12 h5 {% if r.gpus_offline > 0 %}text-danger{% else %}text-success{% endif %}">{{ r.gpus_offline }}</div>
+                      </div>
+                  </div>
+                  <div class="col-6 col-md-4 bg-dark text-light border border-light rounded">
+                      <div class="row">
+                          <div class="col-12 h4">Pool Switches</div>
+                          <div class="col-12 h5 {% if r.pool_switches > 0 %}text-danger{% else %}text-success{% endif %}">{{ r.pool_switches }}</div>
+                      </div>
+                  </div>
+                  <div class="col-12 col-md-8 bg-dark text-light border border-light rounded">
+                      <div class="row">
+                          <div class="col-12 h4">Pool</div>
+                          <div class="col-12 h5 text-success">{{ r.pool }}</div>
+                      </div>
+                  </div>
+                  <div class="col-12 col-md-8 bg-dark text-light border border-light rounded">
+                      <div class="row">
+                          <div class="col-12 h4">Version</div>
+                          <div class="col-12 h5 text-success">{{ r.version }}</div>
+                      </div>
+                  </div>
+                  {% if user.is_authenticated or not config.restrict_actions %}
+                      <div class="col-6 col-md-4 bg-dark text-light border border-light rounded">
+                          {% include "app/stats_actions.html" with r=r only %}
+                      </div>
+                  {% endif %}
+              </div>
+            </div>
+            <div class="col-12 col-md-6" style="padding:0">
+                <table class="table table-sm text-center bg-dark text-light font-weight-bold">
+                <thead>
+                    <tr>
+                    <th>GPU #</th>
+                    <th>Hashrate</th>
+                    <th>Temperature</th>
+                    <th>Fan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for g in r.gpus.all %}
+                        <tr>
+                        <td>{{ g.number }}</td>
+                        <td class="{% if g.hashrate == 0 %}text-danger{% else %}text-success{% endif %}">{{ g.hashrate }} MH/s</td>
+                        <td class="{% if g.temp > config.danger_temp %}text-danger{% elif g.temp > config.warn_temp %}text-warning{% else %}text-success{% endif %}">{{ g.temp }}C</td>
+                        <td class="{% if g.fan > config.danger_fan %}text-danger{% elif g.fan > config.warn_fan %}text-warning{% else %}text-success{% endif %}">{{ g.fan }}%</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+  </div>
+{% endfor %}
+
+{% endblock %}
