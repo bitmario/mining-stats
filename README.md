@@ -5,25 +5,56 @@ A simple Python 3/Django app for monitoring of Ethereum mining rigs. Currently s
 ## Features
 
 * Real-time dashboard of multiple mining rigs
+* Remote triggering of miner restarts or rig reboots
 * Tracking of hashrate and temperatures per rig or per graphics card
 * Historical charts
 * Responsive
 * Low requirements (can run on a Raspberry Pi, for example)
 * Works offline (no external JS/CSS used)
 
+## Status
+
+This project is currently in **beta**. Please test and report issues/submit PRs.
+
 ## Getting Started
 
-### Requirements
+### Initial Setup
 
-You'll need PostgreSQL, Python 3 and pip:
+You'll need nginx, PostgreSQL, Python 3, pip and virtualenv:
 
 ```
-sudo apt install postgresql python3 python3-pip
+sudo apt install nginx postgresql python3 python3-pip
+sudo pip3 install virtualenv
+```
+
+Create a PostgreSQL user and database:
+
+```
+sudo -u postgres createuser mining_stats
+sudo -u postgres psql -U postgres -d postgres -c "ALTER USER mining_stats WITH PASSWORD 'minetest';"
+sudo -u postgres createdb -O mining_stats mining_stats
+```
+
+Set environment variables by executing `nano ~/env` and defining appropriate values, e.g.:
+
+```
+MS_SECRET_KEY=1e5afa31-f917-40cd-ae98-61fe319418a7
+MS_DB_HOST=localhost
+MS_DB_PORT=5432
+MS_DB_NAME=mining_stats
+MS_DB_USER=mining_stats
+MS_DB_PASSWORD=minetest
+MS_TZ=Etc/UTC
+```
+
+### Create the virtualenv and activate it
+
+```
+virtualenv msenv
+source msenv/bin/activate
 ```
 
 ### Clone repository and install dependencies 
-
-***note:** you may want to use a [virtualenv](https://virtualenv.pypa.io/en/stable/)*
 
 ```
 git clone https://github.com/bitmario/mining-stats
@@ -31,42 +62,102 @@ cd mining-stats
 pip3 install -r requirements.txt
 ```
 
-### Environment variables to set
+### Run migrations, collect static files and create admin user
 
-* MS_SECRET_KEY *(use a secret and random value such as a UUID)*
-* MS_DB_HOST
-* MS_DB_PORT
-* MS_DB_NAME
-* MS_DB_USER
-* MS_DB_PASSWORD
-* MS_TZ *(optional, defaults to Etc/UTC)*
+We first need to source and export the environment variables:
 
-### Run migrations and create admin user
+```
+set -a; source ~/env; set +a
+```
+
+Now we run the required operations:
 
 ```
 python3 manage.py migrate
+python3 manage.py collectstatic
 python3 manage.py createsuperuser
 ```
 
 ### Schedule data collection
 
-Add a line to your cron (`crontab -e`), e.g.:
+Edit your cron (run `crontab -e`) to set the shell as Bash and run our jobs, e.g.:
 
 ```
-*/1 * * * *    python3 /home/user/mining-stats/manage.py runcrons >> /home/user/miningstats_cron.log
+SHELL=/bin/bash
+*/1 * * * *    source /home/user/msenv/bin/activate && set -a && source /home/user/env && set +a && python3 /home/user/mining-stats/manage.py runcrons
 ```
 
-### Run the server
+### Test the server
 
 ```
 python3 manage.py runserver 0.0.0.0:8000
 ```
 
-You should now be able to access the server at *http://YOUR_IP:8000*, cool!
+You should now be able to access the server at *http://YOUR_IP:8000*. If you got here, congratulations! The hard part is over, stop the service (`CTRL + C`) and keep reading.
 
-At this point you should seriously consider setting up [gunicorn and nginx](http://docs.gunicorn.org/en/stable/deploy.html) if this machine is accessible outside a very restricted LAN! Otherwise, you can just run this on boot.
+### Create the deployment service
+
+Create a new systemd service (e.g. `sudo nano /etc/systemd/system/gunicorn.service`):
+
+```
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User=user
+Group=user
+WorkingDirectory=/home/user/mining-stats/
+EnvironmentFile=/home/user/env
+ExecStart=/home/user/msenv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/home/user/mining_stats.sock mining_stats.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Now enable and start the service:
+
+```
+sudo systemctl enable gunicorn.service
+sudo systemctl start gunicorn.service
+```
+
+### Set up nginx
+
+Let's create a new server in the `sites-available` directory:
+
+```
+sudo nano /etc/nginx/sites-available/mining-stats
+```
+
+Your config should be similar to the following:
+
+```
+server {
+    listen 8000 default_server;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        root /home/user/mining-stats;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/user/mining_stats.sock;
+    }
+}
+```
+
+Enable the site and restart nginx:
+
+```
+sudo ln -s /etc/nginx/sites-available/myproject /etc/nginx/sites-enabled
+sudo systemctl restart nginx
+```
 
 ### Configure options and rigs
+
+The technical part is done, now we just need to configure the system:
 
 1. Access the MiningStats server and log in with the superuser account that you created
 2. Click the *Admin* link on the page header

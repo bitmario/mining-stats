@@ -68,8 +68,8 @@ WSGI_APPLICATION = 'mining_stats.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env.str('MS_DB_NAME', 'mine_stats'),
-        'USER': env.str('MS_DB_USER', 'mine_stats'),
+        'NAME': env.str('MS_DB_NAME', 'mining_stats'),
+        'USER': env.str('MS_DB_USER', 'mining_stats'),
         'PASSWORD': env.str('MS_DB_PASSWORD', 'minetest'),
         'HOST': env.str('MS_DB_HOST', 'localhost'),
         'PORT': env.int('MS_DB_PORT', 5432),

@@ -1,5 +1,6 @@
 django >=1.11, <2
 django-environ==0.4.4
+gunicorn==19.7.1
 whitenoise==3.3.1
 psycopg2>=2.7.4, <2.8.0
 django-cron==0.5.0
