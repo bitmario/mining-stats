@@ -151,7 +151,7 @@ server {
 Enable the site and restart nginx:
 
 ```
-sudo ln -s /etc/nginx/sites-available/myproject /etc/nginx/sites-enabled
+sudo ln -s /etc/nginx/sites-available/mining-stats /etc/nginx/sites-enabled
 sudo systemctl restart nginx
 ```
 
