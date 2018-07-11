@@ -2,6 +2,9 @@
 
 A simple Python 3/Django app for monitoring of Ethereum mining rigs. Currently supports only Claymore miner >= V10.
 
+![Homepage Screenshot](assets/dashboard.png)
+![Charts Screenshot](assets/charts.png)
+
 ## Features
 
 * Real-time dashboard of multiple mining rigs
