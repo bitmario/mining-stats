@@ -6,6 +6,7 @@ A simple Python 3/Django app for Ethereum mining monitoring.
 
 * Claymore
 * Phoenix miner
+* Ethminer
 
 ## Features
 
