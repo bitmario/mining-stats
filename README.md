@@ -1,6 +1,11 @@
 # MiningStats - ETH Mining Monitoring
 
-A simple Python 3/Django app for monitoring of Ethereum mining rigs. Currently supports only Claymore miner >= V10.
+A simple Python 3/Django app for Ethereum mining monitoring.
+
+## Supported miners
+
+* Claymore
+* Phoenix miner
 
 ## Features
 
