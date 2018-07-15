@@ -153,7 +153,7 @@ def chart(request, rig_id=None, hours=None):
                               .filter(miner__id=rig_id, created_at__gte=date_from) \
                               .order_by('id')
 
-    has_data = query.exists()
+    has_data = query and query.filter(online=True).exists()
 
     if has_data:
         dates = [x.created_at for x in query]
@@ -185,6 +185,9 @@ def chart(request, rig_id=None, hours=None):
         dates = None
         hashrates = None
         temps = None
+        gpu_numbers = None
+        gpu_hashrates = None
+        gpu_temps = None
     
     return render(
         request, 
@@ -202,6 +205,5 @@ def chart(request, rig_id=None, hours=None):
             'gpu_numbers': gpu_numbers,
             'gpu_hashrates': gpu_hashrates,
             'gpu_temps': gpu_temps,
-            'year': datetime.now().year,
         }
     )
