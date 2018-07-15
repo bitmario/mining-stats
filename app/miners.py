@@ -58,7 +58,7 @@ class Claymore(Miner):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(1.0)
             s.connect((self.host, self.port))
-            s.sendall("{}\n".format(json.dumps(request).encode()))
+            s.sendall("{}\n".format(json.dumps(request)).encode())
             if responds:
                 res = s.recv(1024)
                 if res != b'':
