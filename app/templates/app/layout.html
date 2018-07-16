@@ -42,6 +42,7 @@
 {% block content %}{% endblock %}
         <hr/>
         <footer>
+            {% load tz %}
             {% get_current_timezone as TIME_ZONE %}
             <p>
                 &copy; {% now 'Y' %} <a href="https://github.com/bitmario/mining-stats">MiningStats</a>
