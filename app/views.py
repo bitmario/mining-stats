@@ -1,14 +1,14 @@
 """
 Definition of views.
 """
-import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
 
 from django.shortcuts import render, redirect, render_to_response
 from django.http import HttpRequest, Http404, HttpResponseBadRequest
 from django.template import RequestContext
 from django.conf import settings
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 import numpy as np
 import pandas as pd
@@ -47,7 +47,7 @@ def stats(request):
         max_temp = 0
         max_dt = 0
 
-    title = 'Overview at {:%Y-%m-%d %H:%M}'.format(max_dt) if len(miner_stats) > 0 else 'No rigs configured'
+    title = 'Overview at {:%Y-%m-%d %H:%M}'.format(timezone.localtime(max_dt)) if len(miner_stats) > 0 else 'No rigs configured'
 
     return render(
         request,
@@ -62,7 +62,6 @@ def stats(request):
             'gpus_online': gpus_online,
             'gpus_offline': gpus_offline,
             'max_temp': max_temp,
-            'year': datetime.now().year,
         }
     )
 
@@ -148,7 +147,7 @@ def chart(request, rig_id=None, hours=None):
         mins = 5
         time_unit = 'minute'
     
-    date_from = datetime.utcnow() - timedelta(hours=hours)
+    date_from = timezone.now() - timedelta(hours=hours)
     query = models.MinerStatus.objects \
                               .filter(miner__id=rig_id, created_at__gte=date_from) \
                               .order_by('id')
@@ -156,7 +155,7 @@ def chart(request, rig_id=None, hours=None):
     has_data = query and query.filter(online=True).exists()
 
     if has_data:
-        dates = [x.created_at for x in query]
+        dates = [timezone.localtime(x.created_at) for x in query]
         hashrates = [float(x.hashrate) if x.hashrate is not None else x.hashrate for x in query]
         temps = [int(x.max_temp) if x.hashrate is not None else x.hashrate for x in query]
 
