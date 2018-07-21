@@ -10,6 +10,7 @@ class GpuStats:
     temp = 0
     fan = 0
 
+
 class Stats:
     ping = None
     online = False
@@ -30,6 +31,7 @@ class Stats:
     def __init__(self, miner):
         self.miner = miner
 
+
 class Miner:
     def __init__(self, host="127.0.0.1", port=3333, password=None):
         self.host = host
@@ -43,13 +45,10 @@ class Miner:
         except:
             return None
 
+
 class Claymore(Miner):
     def execute_method(self, method, responds=True, params=None):
-        request = {
-			"id": 0,
-			"jsonrpc": "2.0",
-            "method": method
-        }
+        request = {"id": 0, "jsonrpc": "2.0", "method": method}
         if params:
             request["params"] = params
         if self.password:
@@ -61,10 +60,10 @@ class Claymore(Miner):
             s.sendall("{}\n".format(json.dumps(request)).encode())
             if responds:
                 res = s.recv(1024)
-                if res != b'':
-                    return(json.loads(res.decode())['result'])
+                if res != b"":
+                    return json.loads(res.decode())["result"]
                 else:
-                    raise Exception('Unexpected empty response')
+                    raise Exception("Unexpected empty response")
 
     def get_stats(self):
         s = Stats(self)
@@ -73,7 +72,7 @@ class Claymore(Miner):
             res = self.execute_method("miner_getstat1")
         except socket.timeout as ex:
             res = None
-            s.error = 'Network timeout'
+            s.error = "Network timeout"
         except Exception as ex:
             res = None
             s.error = str(ex)
@@ -99,7 +98,7 @@ class Claymore(Miner):
         for g in hashrates:
             gs = GpuStats()
             gs.number = len(gpus)
-            gs.hashrate = int(g) / 1000.0 if g != 'off' else 0
+            gs.hashrate = int(g) / 1000.0 if g != "off" else 0
             if gs.hashrate > 0:
                 s.gpus_online += 1
             else:
@@ -108,8 +107,8 @@ class Claymore(Miner):
 
         temps = res[6].split(";")
         for x in range(len(gpus)):
-            gpus[x].temp = int(temps[x*2])
-            gpus[x].fan = int(temps[x*2+1])
+            gpus[x].temp = int(temps[x * 2])
+            gpus[x].fan = int(temps[x * 2 + 1])
             if gpus[x].temp > s.max_temp:
                 s.max_temp = gpus[x].temp
 
@@ -118,16 +117,28 @@ class Claymore(Miner):
 
     def print_stats(self):
         stats = self.get_stats()
-        print("Host: {}:{} ({}) | Up {} min".format(self.host, self.port, stats.version, stats.runtime))
+        print(
+            "Host: {}:{} ({}) | Up {} min".format(
+                self.host, self.port, stats.version, stats.runtime
+            )
+        )
         print("Pool: {} ({} switches)".format(stats.pool, stats.pool_switches))
         print("Total hashrate: {} MH/s".format(stats.hashrate))
-        print("Shares: {} | Rejected: {} | Invalid: {}".format(stats.shares, stats.rej_shares, stats.invalid_shares))
+        print(
+            "Shares: {} | Rejected: {} | Invalid: {}".format(
+                stats.shares, stats.rej_shares, stats.invalid_shares
+            )
+        )
         for i in range(len(stats.gpus)):
             g = stats.gpus[i]
-            print("GPU #{}: {}MH/s | Temp: {}C | Fan: {}%".format(i, g.hashrate, g.temp, g.fan))
+            print(
+                "GPU #{}: {}MH/s | Temp: {}C | Fan: {}%".format(
+                    i, g.hashrate, g.temp, g.fan
+                )
+            )
 
     def restart(self):
-        self.execute_method('miner_restart', responds=False)
+        self.execute_method("miner_restart", responds=False)
 
     def reboot(self):
-        self.execute_method('miner_reboot', responds=False)
+        self.execute_method("miner_reboot", responds=False)

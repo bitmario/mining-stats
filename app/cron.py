@@ -8,7 +8,7 @@ class UpdateStats(CronJobBase):
     RUN_EVERY_MINS = 1
 
     schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
-    code = 'app.update_stats'
+    code = "app.update_stats"
 
     def do(self):
         rigs = models.Rig.objects.all()

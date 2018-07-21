@@ -22,7 +22,7 @@ def stats(request):
 
     config = models.SiteConfiguration.get_solo()
     if config.restrict_stats and not request.user.is_authenticated:
-        return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
+        return redirect("{}?next={}".format(settings.LOGIN_URL, request.path))
 
     rigs = models.Rig.objects.all()
     miner_stats = []
@@ -37,8 +37,12 @@ def stats(request):
     total_hashrate = sum(0 if s.hashrate is None else s.hashrate for s in miner_stats)
     rigs_online = sum(1 if s.online else 0 for s in miner_stats)
     rigs_offline = len(miner_stats) - rigs_online
-    gpus_online = sum(0 if s.gpus_online is None else s.gpus_online for s in miner_stats)
-    gpus_offline = sum(0 if s.gpus_offline is None else s.gpus_offline for s in miner_stats)
+    gpus_online = sum(
+        0 if s.gpus_online is None else s.gpus_online for s in miner_stats
+    )
+    gpus_offline = sum(
+        0 if s.gpus_offline is None else s.gpus_offline for s in miner_stats
+    )
 
     if len(miner_stats) > 0:
         max_temp = max(0 if s.max_temp is None else s.max_temp for s in miner_stats)
@@ -47,23 +51,28 @@ def stats(request):
         max_temp = 0
         max_dt = 0
 
-    title = 'Overview at {:%Y-%m-%d %H:%M}'.format(timezone.localtime(max_dt)) if len(miner_stats) > 0 else 'No rigs configured'
+    title = (
+        "Overview at {:%Y-%m-%d %H:%M}".format(timezone.localtime(max_dt))
+        if len(miner_stats) > 0
+        else "No rigs configured"
+    )
 
     return render(
         request,
-        'app/stats.html',
+        "app/stats.html",
         {
-            'config': config,
-            'title': title,
-            'stats': miner_stats,
-            'total_hashrate': total_hashrate,
-            'rigs_online': rigs_online,
-            'rigs_offline': rigs_offline,
-            'gpus_online': gpus_online,
-            'gpus_offline': gpus_offline,
-            'max_temp': max_temp,
-        }
+            "config": config,
+            "title": title,
+            "stats": miner_stats,
+            "total_hashrate": total_hashrate,
+            "rigs_online": rigs_online,
+            "rigs_offline": rigs_offline,
+            "gpus_online": gpus_online,
+            "gpus_offline": gpus_offline,
+            "max_temp": max_temp,
+        },
     )
+
 
 def restart(request, rig_id):
     """Restarts a rig"""
@@ -71,7 +80,7 @@ def restart(request, rig_id):
 
     config = models.SiteConfiguration.get_solo()
     if config.restrict_actions and not request.user.is_authenticated:
-        return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
+        return redirect("{}?next={}".format(settings.LOGIN_URL, request.path))
 
     try:
         r = models.Rig.objects.get(pk=rig_id)
@@ -79,15 +88,11 @@ def restart(request, rig_id):
     except models.Rig.DoesNotExist:
         return Http404("Rig does not exist")
     return render(
-        request, 
-        'app/operation_success.html', 
-        {
-            'config': config,
-            'title': 'Success!', 
-            'rig': r, 
-            'operation':'restart'
-        }
+        request,
+        "app/operation_success.html",
+        {"config": config, "title": "Success!", "rig": r, "operation": "restart"},
     )
+
 
 def reboot(request, rig_id):
     """Reboots a rig"""
@@ -95,7 +100,7 @@ def reboot(request, rig_id):
 
     config = models.SiteConfiguration.get_solo()
     if config.restrict_actions and not request.user.is_authenticated:
-        return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
+        return redirect("{}?next={}".format(settings.LOGIN_URL, request.path))
 
     try:
         r = models.Rig.objects.get(pk=rig_id)
@@ -103,22 +108,18 @@ def reboot(request, rig_id):
     except models.Rig.DoesNotExist:
         return Http404("Rig does not exist")
     return render(
-        request, 
-        'app/operation_success.html', 
-        {
-            'config': config,
-            'title': 'Success!',
-            'rig': r,
-            'operation':'reboot'
-        }
+        request,
+        "app/operation_success.html",
+        {"config": config, "title": "Success!", "rig": r, "operation": "reboot"},
     )
+
 
 def chart(request, rig_id=None, hours=None):
     assert isinstance(request, HttpRequest)
 
     config = models.SiteConfiguration.get_solo()
     if config.restrict_actions and not request.user.is_authenticated:
-        return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
+        return redirect("{}?next={}".format(settings.LOGIN_URL, request.path))
 
     default_hours = 24
     max_hours = 7 * 24
@@ -136,38 +137,49 @@ def chart(request, rig_id=None, hours=None):
 
     if hours > 24:
         mins = 60
-        time_unit = 'day'
+        time_unit = "day"
     elif hours > 12:
         mins = 30
-        time_unit = 'hour'
+        time_unit = "hour"
     elif hours > 2:
         mins = 10
-        time_unit = 'minute'
+        time_unit = "minute"
     else:
         mins = 5
-        time_unit = 'minute'
-    
+        time_unit = "minute"
+
     date_from = timezone.now() - timedelta(hours=hours)
-    query = models.MinerStatus.objects \
-                              .filter(miner__id=rig_id, created_at__gte=date_from) \
-                              .order_by('id')
+    query = models.MinerStatus.objects.filter(
+        miner__id=rig_id, created_at__gte=date_from
+    ).order_by("id")
 
     has_data = query and query.filter(online=True).exists()
 
     if has_data:
         dates = [timezone.localtime(x.created_at) for x in query]
-        hashrates = [float(x.hashrate) if x.hashrate is not None else x.hashrate for x in query]
-        temps = [int(x.max_temp) if x.hashrate is not None else x.hashrate for x in query]
+        hashrates = [
+            float(x.hashrate) if x.hashrate is not None else x.hashrate for x in query
+        ]
+        temps = [
+            int(x.max_temp) if x.hashrate is not None else x.hashrate for x in query
+        ]
 
-        df = pd.DataFrame({'hashrate': hashrates, 'temp': temps}, dates)
-        dft = df.resample('{}T'.format(mins)).agg([np.mean, np.min, np.max, np.std]).round(2)
+        df = pd.DataFrame({"hashrate": hashrates, "temp": temps}, dates)
+        dft = (
+            df.resample("{}T".format(mins))
+            .agg([np.mean, np.min, np.max, np.std])
+            .round(2)
+        )
 
-        dates = json.dumps(['{:%Y-%m-%d %H:%M}'.format(x) for x in dft.index.to_pydatetime().tolist()])
-        hashrates = json.dumps(dft['hashrate']['mean'].values.tolist())
-        temps = json.dumps(dft['temp']['mean'].values.tolist())
+        dates = json.dumps(
+            ["{:%Y-%m-%d %H:%M}".format(x) for x in dft.index.to_pydatetime().tolist()]
+        )
+        hashrates = json.dumps(dft["hashrate"]["mean"].values.tolist())
+        temps = json.dumps(dft["temp"]["mean"].values.tolist())
 
-        gpu_query = models.GpuStatus.objects \
-                                    .filter(miner_status_id__in=[x.pk for x in query])
+        gpu_query = models.GpuStatus.objects.filter(
+            miner_status_id__in=[x.pk for x in query]
+        )
         gpu_numbers = []
         gpu_hashrates = []
         gpu_temps = []
@@ -175,11 +187,13 @@ def chart(request, rig_id=None, hours=None):
             gpu_numbers.append(int(g.number))
             gpu_hashrates.append(float(g.hashrate))
             gpu_temps.append(int(g.temp))
-        gpu_df = pd.DataFrame({'hashrate': gpu_hashrates, 'temp': gpu_temps}, gpu_numbers)
+        gpu_df = pd.DataFrame(
+            {"hashrate": gpu_hashrates, "temp": gpu_temps}, gpu_numbers
+        )
         gpu_dft = gpu_df.groupby(gpu_df.index).agg([np.mean, np.max]).round(3)
         gpu_numbers = [int(x) for x in gpu_dft.index.tolist()]
-        gpu_hashrates = json.dumps(gpu_dft['hashrate']['mean'].values.tolist())
-        gpu_temps = json.dumps(gpu_dft['temp']['amax'].values.tolist())
+        gpu_hashrates = json.dumps(gpu_dft["hashrate"]["mean"].values.tolist())
+        gpu_temps = json.dumps(gpu_dft["temp"]["amax"].values.tolist())
     else:
         dates = None
         hashrates = None
@@ -187,22 +201,22 @@ def chart(request, rig_id=None, hours=None):
         gpu_numbers = None
         gpu_hashrates = None
         gpu_temps = None
-    
+
     return render(
-        request, 
-        'app/charts.html',
+        request,
+        "app/charts.html",
         {
-            'title': 'Charts for {} ({}:{})'.format(rig.name, rig.host, rig.port),
-            'miner': rig,
-            'time_unit': time_unit,
-            'hours': hours,
-            'mins': mins,
-            'has_data': has_data,
-            'dates': dates,
-            'hashrates': hashrates,
-            'temps': temps,
-            'gpu_numbers': gpu_numbers,
-            'gpu_hashrates': gpu_hashrates,
-            'gpu_temps': gpu_temps,
-        }
+            "title": "Charts for {} ({}:{})".format(rig.name, rig.host, rig.port),
+            "miner": rig,
+            "time_unit": time_unit,
+            "hours": hours,
+            "mins": mins,
+            "has_data": has_data,
+            "dates": dates,
+            "hashrates": hashrates,
+            "temps": temps,
+            "gpu_numbers": gpu_numbers,
+            "gpu_hashrates": gpu_hashrates,
+            "gpu_temps": gpu_temps,
+        },
     )
